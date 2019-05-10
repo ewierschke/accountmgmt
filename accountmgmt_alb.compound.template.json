@@ -225,7 +225,7 @@
             "Ref": "UsersOUDN"
           }
         },
-        "TemplateURL": "https://s3.amazonaws.com/dicelab-accountmgmt/accountmgmt_private_autoscale_alb.element.template.json"
+        "TemplateURL": "https://s3.amazonaws.com/accountmgmt-cfn/accountmgmt_private_autoscale_alb.element.template.json"
       },
       "Type": "AWS::CloudFormation::Stack"
     },
@@ -236,7 +236,7 @@
             "Ref": "VPC"
           }
         },
-        "TemplateURL": "https://s3.amazonaws.com/dicelab-accountmgmt/accountmgmt_security_group.element.template.json"
+        "TemplateURL": "https://s3.amazonaws.com/accountmgmt-cfn/accountmgmt_security_group.element.template.json"
       },
       "Type": "AWS::CloudFormation::Stack"
     },
@@ -247,7 +247,7 @@
             "Ref": "SNSSubscriptionEmail"
           }
         },
-        "TemplateURL": "https://s3.amazonaws.com/dicelab-accountmgmt/accountmgmt_sns_topic_subscript.element.template.json"
+        "TemplateURL": "https://s3.amazonaws.com/accountmgmt-cfn/accountmgmt_sns_topic_subscript.element.template.json"
       },
       "Type": "AWS::CloudFormation::Stack"
     }
