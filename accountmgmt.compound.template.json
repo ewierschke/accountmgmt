@@ -209,7 +209,7 @@
                 {
                   "Fn::GetAtt": [
                     "accountmgmtSecurityGroupStack",
-                    "Outputs.accountmgmtSecurityGroupId"
+                    "Outputs.instanceSecurityGroupId"
                   ]
                 }
               ]
@@ -225,7 +225,7 @@
             "Ref": "UsersOUDN"
           }
         },
-        "TemplateURL": "https://s3.amazonaws.com/accountmgmt-cfn/accountmgmt_private_autoscale_alb.element.template.json"
+        "TemplateURL": "https://s3.amazonaws.com/accountmgmt-cfn/accountmgmt_private_autoscale.element.template.json"
       },
       "Type": "AWS::CloudFormation::Stack"
     },
