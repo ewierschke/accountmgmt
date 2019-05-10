@@ -57,7 +57,7 @@
       "Value": {
         "Fn::GetAtt": [
           "accountmgmtSecurityGroupStack",
-          "Outputs.accountmgmtSecurityGroupId"
+          "Outputs.instanceSecurityGroupId"
         ]
       }
     }

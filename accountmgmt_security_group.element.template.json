@@ -17,7 +17,6 @@
   },
   "Resources": {
     "PrivNetToInstanceIngressTcp22": {
-      "Condition": "UseELB",
       "Properties": {
         "FromPort": "22",
         "GroupId": {
