@@ -1290,7 +1290,7 @@
         },
         "SecurityGroups": [
           {
-            "Ref": "SecurityGroupIdaccountmgmtInstance"
+            "Ref": "SecurityGroupIdInstance"
           }
         ],
         "UserData": {
