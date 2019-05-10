@@ -1,0 +1,58 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This templates creates one security group for instances, and one for their load balancer",
+  "Outputs": {
+    "instanceSecurityGroupId": {
+      "Description": "Security Group ID for the osticket instances",
+      "Value": {
+        "Ref": "instanceSecurityGroup"
+      }
+    }
+  },
+  "Parameters": {
+    "VPC": {
+      "Description": "VPC ID",
+      "Type": "AWS::EC2::VPC::Id"
+    }
+  },
+  "Resources": {
+    "PrivNetToInstanceIngressTcp22": {
+      "Condition": "UseELB",
+      "Properties": {
+        "FromPort": "22",
+        "GroupId": {
+          "Ref": "instanceSecurityGroup"
+        },
+        "IpProtocol": "tcp",
+        "CidrIp": "10.0.0.0/16",
+        "ToPort": "22"
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress"
+    },
+    "instanceSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Enable instance access from Priv Network",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  "accountmgmt-",
+                  {
+                    "Ref": "AWS::StackName"
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    }
+  }
+}
