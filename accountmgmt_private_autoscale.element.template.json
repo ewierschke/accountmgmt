@@ -1,5 +1,19 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
+  "AWSTemplateFormatVersion": "2010-09-09",  
+  "Conditions": {
+    "ConfigureDiscovery": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "DiscoIAMGroup"
+            },
+            ""
+          ]
+        }
+      ]
+    }
+  },
   "Description": "This template deploys a accountmgmt instance from launch config in an autoscale group using watchmaker.",
   "Parameters": {
     "AmiId": {
@@ -12,6 +26,11 @@
       "Type": "String",
       "MinLength": "1",
       "Default": "1"
+    },
+    "DiscoIAMGroup": {
+      "Default": "",
+      "Description": "ID of the IAM group to be granted SSH Discovery access to PWM instances",
+      "Type": "String"
     },
     "AdminIAMGroup": {
       "Description": "ID of the IAM group to be granted SSH access to accountmgmt instances",
@@ -275,9 +294,18 @@
               "c-preppackages",
               "g-selinuxconf",
               "h-mailsetup",
-              "i-firewall_httpd",
-              "k-iamsshusers",
-              "l-finalize"
+							"j-adminusersetup",
+							{
+								"Fn::If": [
+									"ConfigureDiscovery",
+									"k-discousersetup",
+									{
+										"Ref": "AWS::NoValue"
+									}
+								]
+							},
+							"l-cloudwatchagentsetup",
+              "m-finalize"
             ]
           },
           "a-cfnsetup": {
@@ -440,434 +468,6 @@
               }
             }
           },
-          "d-accountmgmtinstall": {
-            "commands": {
-              "10-git-accountmgmt": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "cd /root/ && git clone https://github.com/ewierschke/accountmgmt",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "20-deploy1-accountmgmt": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "cd /root/accountmgmt && php manage.php deploy --setup /var/www/html",
-                      "\n"
-                    ]
-                  ]
-                },
-                "ignoreErrors": "true"
-              },
-              "30-deploy2-accountmgmt": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "cd /root/accountmgmt && php manage.php deploy --setup /var/www/html",
-                      "\n"
-                    ]
-                  ]
-                },
-                "ignoreErrors": "true"
-              },
-              "35-apikeywildcard-get-file1": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "aws s3 cp s3://",
-                      {
-                        "Ref": "accountmgmtConfigBucketName"
-                      },
-                      "/manage.api_keys.yaml /var/www/html/include/i18n/en_US/help/tips/manage.api_keys.yaml",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "36-apikeywildcard-get-file2": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "aws s3 cp s3://",
-                      {
-                        "Ref": "accountmgmtConfigBucketName"
-                      },
-                      "/class.api.php /var/www/html/include/class.api.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "40-apache-owner": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chown -R apache:apache /var/www/html/*",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "50-reperm": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "find /var/www/html -type f -perm 644 -exec chmod 0664 {} \\;",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "60-selinux-context": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chcon -t httpd_sys_content_t /var/www/html -R",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "70-php-timezone": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "sed -i 's|;date.timezone =|date.timezone = America/New_York|' /etc/php.ini",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "71-php-uploadsize": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "sed -i 's|upload_max_filesize = 2M|upload_max_filesize = 10M|' /etc/php.ini",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "80-staff-login-tip": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "sed -i 's|Email or Username|Username|' /var/www/html/include/staff/login.tpl.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "81-client-login-tip": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "sed -i 's|Email or Username|Username|' /var/www/html/include/client/login.inc.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "82-ticket-status-guidance1": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "sed -i \"s|        <?php echo __('Have an account with us?'); ?>|        <?php echo __('If you have an account with us you can '); ?>|\" /var/www/html/include/client/accesslink.inc.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "83-ticket-status-guidance2": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "sed -i \"s|        <a href=\"login.php\"><?php echo __('Sign In'); ?></a> <?php|        <a href=\"login.php\"><?php echo __('Sign In'); ?></a> <?php echo __('to check the status of all your tickets.'); ?> <?php|\" /var/www/html/include/client/accesslink.inc.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              }
-            },
-            "files": {
-              "/etc/cron.d/accountmgmtcron": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "*/1 * * * * root /usr/bin/php /var/www/html/api/cron.php",
-                      "\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000644",
-                "owner": "root"
-              }
-            }
-          },
-          "e-accountmgmtplugins": {
-            "commands": {
-              "10-get-authplugin": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "aws s3 cp s3://",
-                      {
-                        "Ref": "accountmgmtConfigBucketName"
-                      },
-                      "/auth-ldap.phar /var/www/html/include/plugins/auth-ldap.phar",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "20-get-s3plugin": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "aws s3 cp s3://",
-                      {
-                        "Ref": "accountmgmtConfigBucketName"
-                      },
-                      "/storage-s3.phar /var/www/html/include/plugins/storage-s3.phar",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "30-chown-plugins": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chown apache:apache /var/www/html/include/plugins/auth-ldap.phar && chown apache:apache /var/www/html/include/plugins/storage-s3.phar",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "31-chcon-plugins": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chcon -t httpd_sys_content_t /var/www/html/include/plugins/auth-ldap.phar && chcon -t httpd_sys_content_t /var/www/html/include/plugins/storage-s3.phar",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "40-git-mldap-plugin": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "cd /root/ && git clone https://github.com/ewierschke/accountmgmt-multildap-auth",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "41-mv-mldap": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "mv /root/accountmgmt-multildap-auth/multi-ldap /var/www/html/include/plugins/",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "42-prep-syncfile": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "touch /var/www/html/scp/sync_mldap.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "43-chmod-syncfile": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chmod 644 /var/www/html/scp/sync_mldap.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "44-chcon-syncfile": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chcon -t httpd_sys_rw_content_t /var/www/html/scp/sync_mldap.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "45-chown-mldap-plugin": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chown apache:apache /var/www/html/scp/sync_mldap.php && chown apache:apache /var/www/html/include/plugins/multi-ldap/ && chown apache:apache /var/www/html/include/plugins/multi-ldap/*",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "46-chcon-mldap-plugin": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chcon -t httpd_sys_content_t /var/www/html/include/plugins/multi-ldap/ && chcon -t httpd_sys_content_t /var/www/html/include/plugins/multi-ldap/*",
-                      "\n"
-                    ]
-                  ]
-                }
-              }
-            }
-          },
-          "f-accountmgmtexist": {
-            "commands": {
-              "10-get-prior-config": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "aws s3 cp s3://",
-                      {
-                        "Ref": "accountmgmtConfigBucketName"
-                      },
-                      "/ost-config.php /var/www/html/include/ost-config.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "20-chmod-config": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chmod 0644 /var/www/html/include/ost-config.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "30-chown-config": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chown apache:apache /var/www/html/include/ost-config.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "40-chcon-config": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chcon -t httpd_sys_rw_content_t /var/www/html/include/ost-config.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "43-cleanup": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "rm -rf /var/www/html/setup/",
-                      "\n"
-                    ]
-                  ]
-                }
-              }
-            }
-          },
-          "f-accountmgmtnew": {
-            "commands": {
-              "10-copyexample": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "cp /var/www/html/include/ost-sampleconfig.php /var/www/html/include/ost-config.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "20-chmod-example": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chmod 0664 /var/www/html/include/ost-config.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "30-chown-example": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chown apache:apache /var/www/html/include/ost-config.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "40-chcon-example": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chcon -t httpd_sys_rw_content_t /var/www/html/include/ost-config.php",
-                      "\n"
-                    ]
-                  ]
-                }
-              }
-            }
-          },
           "g-selinuxconf": {
             "commands": {
               "10-selinux-httpdsendmail": {
@@ -972,176 +572,36 @@
               }
             }
           },
-          "i-firewall_httpd": {
+          "j-adminusersetup": {
             "commands": {
-              "10-fw-start": {
+              "05-cloneawsec2ssh": {
                 "command": {
                   "Fn::Join": [
                     "",
                     [
-                      "service firewalld start",
+                      "cd /root/ && git clone -b usermgmt https://github.com/ewierschke/aws-ec2-ssh ",
                       "\n"
                     ]
                   ]
                 }
               },
-              "20-fw-adjust": {
+              "10-cp_adminsshusermgmt": {
                 "command": {
                   "Fn::Join": [
                     "",
                     [
-                      "setenforce 0 && firewall-cmd --permanent --add-service=http && setenforce 1",
+                      "cp /root/aws-ec2-ssh/adminusermgmt.sh /usr/local/bin/adminusermgmt.sh",
                       "\n"
                     ]
                   ]
                 }
               },
-              "30-httpd-start": {
+              "20-ch_adminsshusermgmt": {
                 "command": {
                   "Fn::Join": [
                     "",
                     [
-                      "service httpd start",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "40-httpd-on": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chkconfig httpd on",
-                      "\n"
-                    ]
-                  ]
-                }
-              }
-            }
-          },
-          "j-ldapimport": {
-            "commands": {
-              "10-yum_perl": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "yum -y install perl perl-LDAP perl-Switch",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "20-wget_ldap-csvexport": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "wget -O /usr/local/bin/ldap-csvexport-1.9.tar.gz https://downloads.sourceforge.net/project/ldap-csvexport/ldap-csvexport-1.9.tar.gz",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "30-expand_ldap-csvexport": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "tar -xvf /usr/local/bin/ldap-csvexport-1.9.tar.gz -C /usr/local/bin/",
-                      "\n"
-                    ]
-                  ]
-                }
-              }
-            },
-            "files": {
-              "/etc/cron.d/accountmgmtuserimport": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "*/15 * * * * root /usr/bin/bash /usr/local/bin/userimport.sh",
-                      "\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000644",
-                "owner": "root"
-              },
-              "/usr/local/bin/userimport.sh": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "#!/bin/bash -e",
-                      "\n",
-                      "today=$(date +\"%Y_%m_%d\")",
-                      "\n",
-                      "/usr/local/bin/ldap-csvexport-1.9/ldap-csvexport.pl -H ",
-                      {
-                        "Ref": "LdapServer"
-                      },
-                      " -u ",
-                      {
-                        "Ref": "SvcAccountDN"
-                      },
-                      " -p '",
-                      {
-                        "Ref": "SvcAccountPassword"
-                      },
-                      "' -a name,mail -b ",
-                      {
-                        "Ref": "UsersOUDN"
-                      },
-                      " -s ',' -f '(objectclass=user)' > /tmp/${today}_ldapexport.csv",
-                      "\n",
-                      "#edit csv to remove entries without email addresses, remove line whenever \"\" found",
-                      "\n",
-                      "sed -i '/\"\"/d' /tmp/${today}_ldapexport.csv",
-                      "\n",
-                      "#change header to \"Name\",\"Email\"",
-                      "\n",
-                      "sed -i '0,/name/ s/name/Name/' /tmp/${today}_ldapexport.csv",
-                      "\n",
-                      "sed -i '0,/mail/ s/mail/Email/' /tmp/${today}_ldapexport.csv",
-                      "\n",
-                      "today=$(date +\"%Y_%m_%d\") && /bin/php /var/www/html/manage.php user -f /tmp/${today}_ldapexport.csv import &> /usr/local/bin/${today}_importresults",
-                      "\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000755",
-                "owner": "root"
-              }
-            }
-          },
-          "k-iamsshusers": {
-            "commands": {
-              "10-get_sshusermgmt": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "aws s3 cp s3://",
-                      {
-                        "Ref": "accountmgmtConfigBucketName"
-                      },
-                      "/usermgmt.sh /usr/local/bin/usermgmt.sh",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "20-ch_sshusermgmt": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chmod 755 /usr/local/bin/usermgmt.sh & chown root /usr/local/bin/usermgmt.sh & chgrp root /usr/local/bin/usermgmt.sh",
+                      "chmod 700 /usr/local/bin/adminusermgmt.sh & chown root /usr/local/bin/adminusermgmt.sh & chgrp root /usr/local/bin/adminusermgmt.sh",
                       "\n"
                     ]
                   ]
@@ -1169,26 +629,12 @@
                   ]
                 }
               },
-              "50-create_groupnamefile": {
+              "50-runadminsshusermgmt": {
                 "command": {
                   "Fn::Join": [
                     "",
                     [
-                      "echo ",
-                      {
-                        "Ref": "AdminIAMGroup"
-                      },
-                      " > /usr/local/bin/groupname\n"
-                    ]
-                  ]
-                }
-              },
-              "60-sshusermgmt": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "/usr/local/bin/usermgmt.sh -G $(cat /usr/local/bin/groupname)",
+                      "/usr/local/bin/adminusermgmt.sh -G $(cat /usr/local/bin/admingroupname)",
                       "\n"
                     ]
                   ]
@@ -1196,18 +642,26 @@
               }
             },
             "files": {
-              "/etc/cron.d/usermgmt": {
+              "/etc/cron.d/adminusermgmt": {
                 "content": {
                   "Fn::Join": [
                     "",
                     [
-                      "*/8 * * * * root /usr/local/bin/usermgmt.sh -G $(cat /usr/local/bin/groupname)",
+                      "*/8 * * * * root /usr/local/bin/adminusermgmt.sh -G $(cat /usr/local/bin/admingroupname)",
                       "\n"
                     ]
                   ]
                 },
                 "group": "root",
                 "mode": "000644",
+                "owner": "root"
+              },
+              "/usr/local/bin/admingroupname": {
+                "content": {
+                  "Ref": "AdminIAMGroup"
+                },
+                "group": "root",
+                "mode": "000600",
                 "owner": "root"
               },
               "/usr/local/bin/authorized_keys_command.sh": {
@@ -1238,7 +692,177 @@
               }
             }
           },
-          "l-finalize": {
+          "k-discousersetup": {
+            "commands": {
+              "10-cp_discosshusermgmt": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "cp /root/aws-ec2-ssh/discousermgmt.sh /usr/local/bin/discousermgmt.sh",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "20-ch_discosshusermgmt": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "chmod 700 /usr/local/bin/discousermgmt.sh & chown root /usr/local/bin/discousermgmt.sh & chgrp root /usr/local/bin/discousermgmt.sh",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "30-rundiscosshusermgmt": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "/usr/local/bin/discousermgmt.sh -G $(cat /usr/local/bin/discogroupname)",
+                      "\n"
+                    ]
+                  ]
+                }
+              }
+            },
+            "files": {
+              "/etc/cron.d/discousermgmt": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "*/8 * * * * root /usr/local/bin/discousermgmt.sh -G $(cat /usr/local/bin/discogroupname)",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000644",
+                "owner": "root"
+              },
+              "/usr/local/bin/discogroupname": {
+                "content": {
+                  "Ref": "DiscoIAMGroup"
+                },
+                "group": "root",
+                "mode": "000600",
+                "owner": "root"
+              }
+            }
+          },
+          "l-cloudwatchagentsetup": {
+            "commands": {
+              "10-get-agent": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "wget https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "20-unpack-agent": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "unzip AmazonCloudWatchAgent.zip -d /usr/local/bin",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "30-install-agent": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "cd /usr/local/bin && bash -xe /usr/local/bin/install.sh",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "40-enable-agent": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "systemctl enable amazon-cloudwatch-agent.service",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "50-start-agent": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "systemctl start amazon-cloudwatch-agent.service",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "60-get-conf": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "aws s3 cp s3://",
+                      {
+                        "Ref": "accountmgmtConfigBucketName"
+                      },
+                      "/accountmgmtcloudwatchagent.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+                    ]
+                  ]
+                }
+              },
+              "61-chmod-conf": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "chmod 640 /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "62-chown-conf": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "chown root:root /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "70-inject-custom-agent-config": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "/opt/aws/amazon-cloudwatch-agent/bin/",
+                      "amazon-cloudwatch-agent-ctl",
+                      " -a fetch-config -m ec2 -c",
+                      " file:/opt/aws/amazon-cloudwatch-agent/etc/",
+                      "amazon-cloudwatch-agent.json -s"
+                    ]
+                  ]
+                }
+              }
+            }
+          },
+          "m-finalize": {
             "commands": {
               "10-signal-success": {
                 "command": {
