@@ -78,6 +78,22 @@
       "Description": "Name of the S3 bucket where the accountmgmt config should be pulled and stored",
       "Type": "String"
     },
+    "accountmgmtSNSTopicARN": {
+      "Description": "ARN of the SNS Topic to which to send auto scale action notifications",
+      "Type": "String"
+    },
+		"GitHubUsername": {
+			"Description": "The username for the GitHub repo that will be cloned",
+			"Type": "String"
+		},
+		"GitHubRepo": {
+			"Description": "The GitHub repo that will be cloned",
+			"Type": "String"
+		},
+		"SaltPillarFile": {
+			"Description": "Name of the pillar file that's stored in the S3 config bucket",
+			"Type": "String"
+		},
     "PrivateSubnetIDs": {
       "Description": "Private Subnet ID where the accountmgmt instance(s) will run. (only select one, load balancing not tested)",
       "Type": "List<AWS::EC2::Subnet::Id>"
@@ -231,6 +247,19 @@
         "MinSize": {
           "Ref": "MinCapacity"
         },
+        "NotificationConfigurations": [
+          {
+            "NotificationTypes": [
+              "autoscaling:EC2_INSTANCE_LAUNCH",
+              "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+              "autoscaling:EC2_INSTANCE_TERMINATE",
+              "autoscaling:EC2_INSTANCE_TERMINATE_ERROR"
+            ],
+            "TopicARN": {
+              "Ref": "accountmgmtSNSTopicARN"
+            }
+          }
+        ],
         "Tags": [
           {
             "Key": "Name",
@@ -291,9 +320,7 @@
             "NewConf": [
               "a-cfnsetup",
               "b-watchmaker",
-              "c-preppackages",
-              "g-selinuxconf",
-              "h-mailsetup",
+              "c-saltformula",
 							"j-adminusersetup",
 							{
 								"Fn::If": [
@@ -404,63 +431,79 @@
               }
             }
           },
-          "c-preppackages": {
+          "c-saltformula": {
             "commands": {
-              "10-install-epelandothers": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "yum -y install epel-release wget unzip cyrus-sasl-plain",
-                      "\n"
-                    ]
-                  ]
-                }
+							"40-cloneformula": {
+								"command": {
+									"Fn::Join": [
+										"",
+										[
+											"git clone https://github.com/",
+											{
+												"Ref": "GitHubUsername"
+											},
+											"/",
+											{
+												"Ref": "GitHubRepo"
+											},
+											" /tmp/",
+											{
+												"Ref": "GitHubRepo"
+											},
+											"\n"
+										]
+									]
+								}
               },
-              "11-enable-epel": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "yum-config-manager --enable epel",
-                      "\n"
-                    ]
-                  ]
-                }
+							"41-mvformula": {
+								"command": {
+									"Fn::Join": [
+										"",
+										[
+											"cp -r /tmp/",
+											{
+												"Ref": "GitHubRepo"
+											},
+											"/* /srv/salt/",
+											"\n"
+										]
+									]
+								}
+							},
+							"43-getformulapillar": {
+								"command": {
+									"Fn::Join": [
+										"",
+										[
+											"aws s3 cp s3://",
+											{
+												"Ref": "accountmgmtConfigBucketName"
+											},
+											"/",
+											{
+												"Ref": "SaltPillarFile"
+											},
+											" /srv/salt/pillar/",
+											{
+												"Ref": "SaltPillarFile"
+											},
+											"\n"
+										]
+									]
+								}
               },
-              "20-install-remi": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "21-enable-remi": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "yum-config-manager --enable remi-php56",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "30-install-phpanddeps": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "yum -y install php php-ldap php-mysqli php-gd php-imap php-mbstring php-intl php-apcu php-opcache",
-                      "\n"
-                    ]
-                  ]
-                }
-              }
+							"90-applysaltstate": {
+								"command": {
+									"Fn::Join": [
+										"",
+										[
+											"salt-call --local --retcode-passthrough state.apply passwd_expire",
+											"\n"
+										]
+									]
+								},
+								"ignoreErrors": "false"
+							}
             },
             "packages": {
               "yum": {

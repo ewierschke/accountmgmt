@@ -119,6 +119,18 @@
       "Description": "Name of the existing S3 bucket where the accountmgmt config should be pulled and pushed",
       "Type": "String"
     },
+		"GitHubUsername": {
+			"Description": "The username for the GitHub repo that will be cloned",
+			"Type": "String"
+		},
+		"GitHubRepo": {
+			"Description": "The GitHub repo that will be cloned",
+			"Type": "String"
+		},
+		"SaltPillarFile": {
+			"Description": "Name of the pillar file that's stored in the S3 config bucket",
+			"Type": "String"
+		},
     "PrivateSubnetIDs": {
       "Description": "List of Private Subnet IDs where the accountmgmt instances will run. (only select one, load balancing not tested)",
       "Type": "List<AWS::EC2::Subnet::Id>"
@@ -163,7 +175,8 @@
   "Resources": {
     "accountmgmtAutoScaleStack": {
       "DependsOn": [
-        "accountmgmtSecurityGroupStack"
+        "accountmgmtSecurityGroupStack",
+        "accountmgmtSNSTopicSubscriptStack"
       ],
       "Properties": {
         "Parameters": {
@@ -175,6 +188,15 @@
           },
           "AdminIAMGroup": {
             "Ref": "AdminIAMGroup"
+          },
+          "GitHubUsername": {
+            "Ref": "GitHubUsername"
+          },
+          "GitHubRepo": {
+            "Ref": "GitHubRepo"
+          },
+          "SaltPillarFile": {
+            "Ref": "SaltPillarFile"
           },
           "InstanceType": {
             "Ref": "InstanceType"
@@ -193,6 +215,12 @@
           },
           "accountmgmtConfigBucketName": {
             "Ref": "accountmgmtConfigBucketName"
+          },
+          "accountmgmtSNSTopicARN": {
+            "Fn::GetAtt": [
+              "accountmgmtSNSTopicSubscriptStack",
+              "Outputs.SNSTopicARN"
+            ]
           },
           "PrivateSubnetIDs": {
             "Fn::Join": [
