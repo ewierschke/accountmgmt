@@ -1,5 +1,5 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",  
+  "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
     "ConfigureDiscovery": {
       "Fn::Not": [
@@ -29,7 +29,7 @@
     },
     "DiscoIAMGroup": {
       "Default": "",
-      "Description": "ID of the IAM group to be granted SSH Discovery access to PWM instances",
+      "Description": "ID of the IAM group to be granted SSH Discovery access to instances",
       "Type": "String"
     },
     "AdminIAMGroup": {
@@ -82,18 +82,18 @@
       "Description": "ARN of the SNS Topic to which to send auto scale action notifications",
       "Type": "String"
     },
-		"GitHubUsername": {
-			"Description": "The username for the GitHub repo that will be cloned",
-			"Type": "String"
-		},
-		"GitHubRepo": {
-			"Description": "The GitHub repo that will be cloned",
-			"Type": "String"
-		},
-		"SaltPillarFile": {
-			"Description": "Name of the pillar file that's stored in the S3 config bucket",
-			"Type": "String"
-		},
+    "GitHubUsername": {
+      "Description": "The username for the GitHub repo that will be cloned",
+      "Type": "String"
+    },
+    "GitHubRepo": {
+      "Description": "The GitHub repo that will be cloned",
+      "Type": "String"
+    },
+    "SaltPillarFile": {
+      "Description": "Name of the pillar file that's stored in the S3 config bucket",
+      "Type": "String"
+    },
     "PrivateSubnetIDs": {
       "Description": "Private Subnet ID where the accountmgmt instance(s) will run. (only select one, load balancing not tested)",
       "Type": "List<AWS::EC2::Subnet::Id>"
@@ -321,17 +321,17 @@
               "a-cfnsetup",
               "b-watchmaker",
               "c-saltformula",
-							"j-adminusersetup",
-							{
-								"Fn::If": [
-									"ConfigureDiscovery",
-									"k-discousersetup",
-									{
-										"Ref": "AWS::NoValue"
-									}
-								]
-							},
-							"l-cloudwatchagentsetup",
+              "j-adminusersetup",
+              {
+                "Fn::If": [
+                  "ConfigureDiscovery",
+                  "k-discousersetup",
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
+              },
+              "l-cloudwatchagentsetup",
               "m-finalize"
             ]
           },
@@ -433,77 +433,149 @@
           },
           "c-saltformula": {
             "commands": {
-							"40-cloneformula": {
-								"command": {
-									"Fn::Join": [
-										"",
-										[
-											"git clone https://github.com/",
-											{
-												"Ref": "GitHubUsername"
-											},
-											"/",
-											{
-												"Ref": "GitHubRepo"
-											},
-											" /tmp/",
-											{
-												"Ref": "GitHubRepo"
-											},
-											"\n"
-										]
-									]
-								}
+              "40-cloneformula": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "git clone https://github.com/",
+                      {
+                        "Ref": "GitHubUsername"
+                      },
+                      "/",
+                      {
+                        "Ref": "GitHubRepo"
+                      },
+                      " /tmp/",
+                      {
+                        "Ref": "GitHubRepo"
+                      },
+                      "\n"
+                    ]
+                  ]
+                }
               },
-							"41-mvformula": {
-								"command": {
-									"Fn::Join": [
-										"",
-										[
-											"cp -r /tmp/",
-											{
-												"Ref": "GitHubRepo"
-											},
-											"/* /srv/salt/",
-											"\n"
-										]
-									]
-								}
-							},
-							"43-getformulapillar": {
-								"command": {
-									"Fn::Join": [
-										"",
-										[
-											"aws s3 cp s3://",
-											{
-												"Ref": "accountmgmtConfigBucketName"
-											},
-											"/",
-											{
-												"Ref": "SaltPillarFile"
-											},
-											" /srv/salt/pillar/",
-											{
-												"Ref": "SaltPillarFile"
-											},
-											"\n"
-										]
-									]
-								}
+              "50-mvformula": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "cp -r /tmp/",
+                      {
+                        "Ref": "GitHubRepo"
+                      },
+                      "/* /srv/salt/",
+                      "\n"
+                    ]
+                  ]
+                }
               },
-							"90-applysaltstate": {
-								"command": {
-									"Fn::Join": [
-										"",
-										[
-											"salt-call --local --retcode-passthrough state.apply passwd_expire",
-											"\n"
-										]
-									]
-								},
-								"ignoreErrors": "false"
-							}
+              "60-getformulapillar": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "aws s3 cp s3://",
+                      {
+                        "Ref": "accountmgmtConfigBucketName"
+                      },
+                      "/",
+                      {
+                        "Ref": "SaltPillarFile"
+                      },
+                      " /srv/salt/pillar/",
+                      {
+                        "Ref": "SaltPillarFile"
+                      },
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "90-applysaltstate": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "salt-call --local --retcode-passthrough state.apply passwd_expire",
+                      "\n"
+                    ]
+                  ]
+                },
+                "ignoreErrors": "false"
+              }
+            },
+            "files": {
+              "/srv/salt/pillar/top.sls": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "base:\n",
+                      "  '*':\n",
+                      "    - ",
+                      {
+                        "Fn::Select": [
+                          "0",
+                          {
+                            "Fn::Split": [
+                              ".",
+                              {
+                                "Ref": "SaltPillarFile"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "\n",
+                      "    - extras"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              },
+              "/srv/salt/pillar/extras.sls": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "accountmgmt:\n",
+                      "  lookup:\n",
+                      "    config_bucket: ",
+                      {
+                        "Ref": "accountmgmtConfigBucketName"
+                      }
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              },
+              "/etc/salt/minion.d/accountmgmt.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "file_client: local\n",
+                      "file_roots: \n",
+                      "  base:\n",
+                      "  - /srv/salt/\n",
+                      "pillar_roots: \n",
+                      "  base:\n",
+                      "  - /srv/salt/pillar/\n",
+                      "hash_type: sha512\n",
+                      "pillar_merge_lists: true\n",
+                      "log_file: /var/log/salt/minion\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
             },
             "packages": {
               "yum": {
