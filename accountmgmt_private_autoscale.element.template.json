@@ -109,13 +109,17 @@
       "MinLength": "1"
     },
     "SvcAccountPassword": {
-      "Description": "Password of the accountmgmt Service Account to query LDAP directory. Must be at least 8 characters containing letters, numbers and symbols",
-      "Type": "String",
-      "MinLength": "8",
-      "MaxLength": "32",
       "AllowedPattern": "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*",
-      "NoEcho": "true",
-      "Default": "Password123"
+      "Default": "Password123",
+      "MaxLength": "32",
+      "MinLength": "8",
+      "Type": "String",
+      "Description": "Service Account Password (will eventually move to using secret name)",
+      "NoEcho": "true"
+    },
+    "SvcAccountPassSecretName": {
+      "Description": "Name of the AWS secrets manager secret containing the Service Account Password",
+      "Type": "String"
     },
     "UsersOUDN": {
       "Description": "Distinguished Name (DN) of the path from which to import LDAP users",
@@ -185,9 +189,70 @@
       },
       "Type": "AWS::IAM::Policy"
     },
+    "AllowSecretsAccess": {
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "secretsmanager:*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:secretsmanager::",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":secret/",
+                      {
+                        "Ref": "SvcAccountPassSecretName"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "PolicyName": "AllowSecretsAccess",
+        "Roles": [
+          {
+            "Ref": "accountmgmtInstanceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
+    "AllowCloudTrailLookupEvents": {
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "cloudtrail:LookupEvents"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ]
+        },
+        "PolicyName": "AllowCloudTrailLookupEvents",
+        "Roles": [
+          {
+            "Ref": "accountmgmtInstanceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
     "accountmgmtConfigInstanceS3Access": {
       "Properties": {
-        "Description": "Policy for accountmgmt instance role to access appropriate s3 bucket for accountmgmt config",
         "PolicyDocument": {
           "Statement": [
             {
@@ -215,13 +280,14 @@
           ],
           "Version": "2012-10-17"
         },
+        "PolicyName": "accountmgmtConfigInstanceS3Access",
         "Roles": [
           {
             "Ref": "accountmgmtInstanceRole"
           }
         ]
       },
-      "Type": "AWS::IAM::ManagedPolicy"
+      "Type": "AWS::IAM::Policy"
     },
     "accountmgmtAutoScalingGroup": {
       "CreationPolicy": {
@@ -574,6 +640,14 @@
                 },
                 "group": "root",
                 "mode": "000700",
+                "owner": "root"
+              },
+              "/usr/local/bin/svcacctpass": {
+                "content": {
+                  "Ref": "SvcAccountPassword"
+                },
+                "group": "root",
+                "mode": "000600",
                 "owner": "root"
               }
             },

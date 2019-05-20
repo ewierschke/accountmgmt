@@ -97,14 +97,14 @@ setup_oupath:
     - user: root
     - group: root
 
-setup_svcacctpass:
-  file.managed:
-    - name: /usr/local/bin/svcacctpass
-    - contents:
-        - "{{ salt.pillar.get('accountmgmt:lookup:svcacctpass') }}"
-    - mode: 600
-    - user: root
-    - group: root
+#setup_svcacctpass:
+#  file.managed:
+#    - name: /usr/local/bin/svcacctpass
+#    - contents:
+#        - "{{ salt.pillar.get('accountmgmt:lookup:svcacctpass') }}"
+#    - mode: 600
+#    - user: root
+#    - group: root
 
 setup_svcacctupn:
   file.managed:

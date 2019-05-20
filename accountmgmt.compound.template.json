@@ -148,9 +148,14 @@
     "SvcAccountPassword": {
       "AllowedPattern": "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*",
       "Default": "Password123",
-      "Description": "Password of the accountmgmt Service Account to query LDAP directory. Must be at least 8 characters containing letters, numbers and symbols",
       "MaxLength": "32",
       "MinLength": "8",
+      "Type": "String",
+      "Description": "Service Account Password (will eventually move to using secret name)",
+      "NoEcho": "true"
+    },
+    "SvcAccountPassSecretName": {
+      "Description": "Name of the AWS secrets manager secret containing the Service Account Password",
       "NoEcho": "true",
       "Type": "String"
     },
@@ -248,6 +253,9 @@
           },
           "SvcAccountPassword": {
             "Ref": "SvcAccountPassword"
+          },
+          "SvcAccountPassSecretName": {
+            "Ref": "SvcAccountPassSecretName"
           },
           "UsersOUDN": {
             "Ref": "UsersOUDN"
