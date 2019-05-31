@@ -289,6 +289,45 @@
       },
       "Type": "AWS::IAM::Policy"
     },
+    "accountmgmtCloudWatchAgent": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "logs:CreateLogGroup",
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "logs:CreateLogStream",
+              "Resource": "arn:aws:logs:::log-group:accountmgmtLogGroup"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "logs:PutLogEvents",
+              "Resource": [
+                "arn:aws:logs:::log-group:accountmgmtLogGroup",
+                "arn:aws:logs:::log-group:accountmgmtLogGroup::"
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": "logs:DescribeLogStreams",
+              "Resource": "arn:aws:logs:::log-group:accountmgmtLogGroup"
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "accountmgmtCloudWatchAgent",
+        "Roles": [
+          {
+            "Ref": "accountmgmtInstanceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
     "accountmgmtAutoScalingGroup": {
       "CreationPolicy": {
         "ResourceSignal": {
