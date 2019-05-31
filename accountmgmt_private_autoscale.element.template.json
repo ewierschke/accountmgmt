@@ -301,7 +301,7 @@
             {
               "Effect": "Allow",
               "Action": "logs:CreateLogStream",
-              "Resource": "arn:aws:logs:*:*:log-group:accountmgmtLogGroup"
+              "Resource": "arn:aws:logs:*:*:log-group:accountmgmtLogGroup:*"
             },
             {
               "Effect": "Allow",
