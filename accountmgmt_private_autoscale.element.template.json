@@ -301,20 +301,20 @@
             {
               "Effect": "Allow",
               "Action": "logs:CreateLogStream",
-              "Resource": "arn:aws:logs:::log-group:accountmgmtLogGroup"
+              "Resource": "arn:aws:logs:*:*:log-group:accountmgmtLogGroup"
             },
             {
               "Effect": "Allow",
               "Action": "logs:PutLogEvents",
               "Resource": [
-                "arn:aws:logs:::log-group:accountmgmtLogGroup",
-                "arn:aws:logs:::log-group:accountmgmtLogGroup::"
+                "arn:aws:logs:*:*:log-group:accountmgmtLogGroup",
+                "arn:aws:logs:*:*:log-group:accountmgmtLogGroup:*:*"
               ]
             },
             {
               "Effect": "Allow",
               "Action": "logs:DescribeLogStreams",
-              "Resource": "arn:aws:logs:::log-group:accountmgmtLogGroup"
+              "Resource": "arn:aws:logs:*:*:log-group:accountmgmtLogGroup:*:*"
             }
           ],
           "Version": "2012-10-17"
