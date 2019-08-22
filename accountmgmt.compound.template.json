@@ -10,8 +10,7 @@
           },
           "Parameters": [
             "VPC",
-            "PrivateSubnetIDs",
-            "PublicSubnetIDs"
+            "PrivateSubnetIDs"
           ]
         },
         {
@@ -132,10 +131,6 @@
 		},
     "PrivateSubnetIDs": {
       "Description": "List of Private Subnet IDs where the accountmgmt instances will run. (only select one, load balancing not tested)",
-      "Type": "List<AWS::EC2::Subnet::Id>"
-    },
-    "PublicSubnetIDs": {
-      "Description": "A list of Public subnet IDs to attach to the load balancer.",
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
     "SvcAccountPassword": {
