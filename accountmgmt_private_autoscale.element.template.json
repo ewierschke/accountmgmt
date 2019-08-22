@@ -123,9 +123,7 @@
     },
     "accountmgmtSESIAMUserName": {
       "Description": "IAM Username used for SES email sending",
-      "Type": "String",
-      "Default": "",
-      "MinLength": "1"
+      "Type": "String"
     }
   },
   "Resources": {
