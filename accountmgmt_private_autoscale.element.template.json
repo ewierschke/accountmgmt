@@ -56,12 +56,6 @@
       "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
       "Type": "AWS::EC2::KeyPair::KeyName"
     },
-    "LdapServer": {
-      "Description": "Name of LDAP server from which to import accountmgmt users",
-      "Type": "String",
-      "Default": "ad.example.com",
-      "MinLength": "1"
-    },
     "MaxCapacity": {
       "Description": "The maximum number of instances for the autoscale group",
       "Type": "String",
@@ -114,12 +108,6 @@
     "SvcAccountPassSecretName": {
       "Description": "Name of the AWS secrets manager secret containing the Service Account Password",
       "Type": "String"
-    },
-    "UsersOUDN": {
-      "Description": "Distinguished Name (DN) of the path from which to import LDAP users",
-      "Type": "String",
-      "Default": "CN=Users,DC=ad,DC=example,DC=com",
-      "MinLength": "1"
     },
     "accountmgmtSESIAMUserName": {
       "Description": "IAM Username used for SES email sending",
