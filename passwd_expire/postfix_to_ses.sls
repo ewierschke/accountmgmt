@@ -38,3 +38,11 @@ start_postfix_service:
   service.running:
     - name: postfix
     - enable: True
+
+get_ses_rotate_script:
+  cmd.run:
+    - name: wget -O /usr/local/bin/rotatesescredsforiamuser.sh https://raw.githubusercontent.com/ewierschke/secrets_manager_ad_pass/master/rotatesescredsforiamuser.sh
+
+run_ses_rotate_script:
+  cmd.run:
+    - name: bash /usr/local/bin/rotatesescredsforiamuser.sh -A {{ salt.pillar.get('accountmgmt:lookup:adminemailto') }} -D {{ salt.pillar.get('accountmgmt:lookup:mailfromdomain') }} -U {{ salt.pillar.get('accountmgmt:lookup:sesiamusername') }}

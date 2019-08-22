@@ -102,12 +102,6 @@
       "Description": "ID of the security group for instances",
       "Type": "AWS::EC2::SecurityGroup::Id"
     },
-    "SvcAccountDN": {
-      "Description": "Distinguished Name (DN) of the accountmgmt Service Account to query LDAP directory",
-      "Type": "String",
-      "Default": "CN=svc_account,CN=Users,DC=ad,DC=example,DC=com",
-      "MinLength": "1"
-    },
     "SvcAccountPassword": {
       "AllowedPattern": "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*",
       "Default": "Password123",
@@ -125,6 +119,12 @@
       "Description": "Distinguished Name (DN) of the path from which to import LDAP users",
       "Type": "String",
       "Default": "CN=Users,DC=ad,DC=example,DC=com",
+      "MinLength": "1"
+    },
+    "accountmgmtSESIAMUserName": {
+      "Description": "IAM Username used for SES email sending",
+      "Type": "String",
+      "Default": "",
       "MinLength": "1"
     }
   },
@@ -315,11 +315,116 @@
               "Effect": "Allow",
               "Action": "logs:DescribeLogStreams",
               "Resource": "arn:aws:logs:*:*:log-group:accountmgmtLogGroup:*:*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "logs:DescribeLogGroups",
+              "Resource": "arn:aws:logs:*:*:log-group:accountmgmtLogGroup:*:*"
             }
           ],
           "Version": "2012-10-17"
         },
         "PolicyName": "accountmgmtCloudWatchAgent",
+        "Roles": [
+          {
+            "Ref": "accountmgmtInstanceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
+    "accountmgmtSSMManagedInstanceCore": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:DescribeAssociation",
+                "ssm:GetDeployablePatchSnapshotForInstance",
+                "ssm:GetDocument",
+                "ssm:DescribeDocument",
+                "ssm:GetManifest",
+                "ssm:GetParameter",
+                "ssm:GetParameters",
+                "ssm:ListAssociations",
+                "ssm:ListInstanceAssociations",
+                "ssm:PutInventory",
+                "ssm:PutComplianceItems",
+                "ssm:PutConfigurePackageResult",
+                "ssm:UpdateAssociationStatus",
+                "ssm:UpdateInstanceAssociationStatus",
+                "ssm:UpdateInstanceInformation"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssmmessages:CreateControlChannel",
+                "ssmmessages:CreateDataChannel",
+                "ssmmessages:OpenControlChannel",
+                "ssmmessages:OpenDataChannel"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply"
+              ],
+              "Resource": "*"
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "accountmgmtSSMManagedInstanceCore",
+        "Roles": [
+          {
+            "Ref": "accountmgmtInstanceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
+    "accountmgmtManageSESIAMAccessKey": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "iam:CreateAccessKey",
+                "iam:UpdateAccessKey",
+                "iam:DeleteAccessKey"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:iam::",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":user/",
+                      {
+                        "Ref": "accountmgmtSESIAMUserName"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "accountmgmtManageSESIAMAccessKey",
         "Roles": [
           {
             "Ref": "accountmgmtInstanceRole"
@@ -437,7 +542,9 @@
                 ]
               },
               "l-cloudwatchagentsetup",
-              "m-finalize"
+              "m-inspectoragentsetup",
+              "n-ssmagentsetup",
+              "o-finalize"
             ]
           },
           "a-cfnsetup": {
@@ -726,73 +833,6 @@
                     "",
                     [
                       "setsebool -P httpd_can_connect_ldap 1",
-                      "\n"
-                    ]
-                  ]
-                }
-              }
-            }
-          },
-          "h-mailsetup": {
-            "commands": {
-              "10-mailsetup-getsaslpass": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "aws s3 cp s3://",
-                      {
-                        "Ref": "accountmgmtConfigBucketName"
-                      },
-                      "/sasl_passwd /etc/postfix/sasl_passwd",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "20-mailsetup-getscript": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "aws s3 cp s3://",
-                      {
-                        "Ref": "accountmgmtConfigBucketName"
-                      },
-                      "/main_cf.sh /usr/local/bin/main_cf.sh",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "30-mailsetup-chscript": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "chmod 755 /usr/local/bin/main_cf.sh & chown root /usr/local/bin/main_cf.sh & chgrp root /usr/local/bin/main_cf.sh",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "40-mailsetup-runscript": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "/usr/local/bin/main_cf.sh",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "50-mailsetup-postmap": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "/sbin/postmap /etc/postfix/sasl_passwd",
                       "\n"
                     ]
                   ]
@@ -1095,7 +1135,136 @@
               }
             }
           },
-          "m-finalize": {
+          "m-inspectoragentsetup": {
+            "commands": {
+              "10-get-agent": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "wget -O inspectorinstall https://inspector-agent.amazonaws.com/linux/latest/install",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "20-disable-gpgcheck": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "sed -i 's:gpgcheck=1:gpgcheck=0:g' /etc/yum.conf",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "21-disable-localpkg_gpgcheck": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "sed -i 's:localpkg_gpgcheck = 1:localpkg_gpgcheck = 0:g' /etc/yum.conf",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "30-run-install-script": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "bash inspectorinstall",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "40-enable-gpgcheck": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "sed -i 's:gpgcheck=0:gpgcheck=1:g' /etc/yum.conf",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "41-enable-localpkg_gpgcheck": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "sed -i 's:localpkg_gpgcheck = 0:localpkg_gpgcheck = 1:g' /etc/yum.conf",
+                      "\n"
+                    ]
+                  ]
+                }
+              }
+            }
+          },
+          "n-ssmagentsetup": {
+            "commands": {
+              "10-disable-gpgcheck": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "sed -i 's:gpgcheck=1:gpgcheck=0:g' /etc/yum.conf",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "11-disable-localpkg_gpgcheck": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "sed -i 's:localpkg_gpgcheck = 1:localpkg_gpgcheck = 0:g' /etc/yum.conf",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "20-run-install-script": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "30-enable-gpgcheck": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "sed -i 's:gpgcheck=0:gpgcheck=1:g' /etc/yum.conf",
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "31-enable-localpkg_gpgcheck": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "sed -i 's:localpkg_gpgcheck = 0:localpkg_gpgcheck = 1:g' /etc/yum.conf",
+                      "\n"
+                    ]
+                  ]
+                }
+              }
+            }
+          },
+          "o-finalize": {
             "commands": {
               "10-signal-success": {
                 "command": {
