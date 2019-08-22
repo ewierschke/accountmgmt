@@ -43,7 +43,6 @@
           "Parameters": [
             "LdapServer",
             "accountmgmtConfigBucketName",
-            "SvcAccountDN",
             "SvcAccountPassword",
             "UsersOUDN"
           ]
@@ -139,12 +138,6 @@
       "Description": "A list of Public subnet IDs to attach to the load balancer.",
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
-    "SvcAccountDN": {
-      "Default": "CN=svc_account,CN=Users,DC=ad,DC=example,DC=com",
-      "Description": "Distinguished Name (DN) of the accountmgmt Service Account to query LDAP directory",
-      "MinLength": "1",
-      "Type": "String"
-    },
     "SvcAccountPassword": {
       "AllowedPattern": "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*",
       "Default": "Password123",
@@ -175,6 +168,12 @@
     "VPC": {
       "Description": "VPC ID",
       "Type": "AWS::EC2::VPC::Id"
+    },
+    "accountmgmtSESIAMUserName": {
+      "Description": "IAM Username used for SES email sending",
+      "Type": "String",
+      "Default": "",
+      "MinLength": "1"
     }
   },
   "Resources": {
@@ -248,9 +247,6 @@
               ]
             ]
           },
-          "SvcAccountDN": {
-            "Ref": "SvcAccountDN"
-          },
           "SvcAccountPassword": {
             "Ref": "SvcAccountPassword"
           },
@@ -259,6 +255,9 @@
           },
           "UsersOUDN": {
             "Ref": "UsersOUDN"
+          },
+          "accountmgmtSESIAMUserName": {
+            "Ref": "accountmgmtSESIAMUserName"
           }
         },
         "TemplateURL": "https://s3.amazonaws.com/accountmgmt-cfn/accountmgmt_private_autoscale.element.template.json"
