@@ -151,7 +151,7 @@
       "Type": "AWS::EC2::VPC::Id"
     },
     "accountmgmtSESIAMUserName": {
-      "Description": "IAM Username used for SES email sending",
+      "Description": "IAM Username used for SES email sending (must be unique per deployment)",
       "Type": "String"
     }
   },
