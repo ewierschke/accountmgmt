@@ -606,23 +606,12 @@
           },
           "b-watchmaker": {
             "commands": {
-              "10-watchmaker-prep": {
+              "10-watchmaker-prep+launch": {
                 "command": {
                   "Fn::Join": [
                     "",
                     [
-                      "PYPI_URL=https://pypi.org/simple && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && python3 -m ensurepip --upgrade --default-pip && pip install --index-url=\"$PYPI_URL\" --upgrade pip setuptools && pip install --index-url=\"$PYPI_URL\" --upgrade watchmaker",
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "20-watchmaker-launch": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "watchmaker --log-level debug -n --log-dir=/var/log/watchmaker",
+                      "PYPI_URL=https://pypi.org/simple && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && python3 -m ensurepip --upgrade --default-pip && pip install --index-url=\"$PYPI_URL\" --upgrade pip setuptools && pip install --index-url=\"$PYPI_URL\" --upgrade watchmaker && watchmaker --log-level debug -n --log-dir=/var/log/watchmaker",
                       "\n"
                     ]
                   ]
