@@ -386,7 +386,8 @@
               "Action": [
                 "iam:CreateAccessKey",
                 "iam:UpdateAccessKey",
-                "iam:DeleteAccessKey"
+                "iam:DeleteAccessKey",
+                "iam:ListAccessKeys"
               ],
               "Effect": "Allow",
               "Resource": [
@@ -610,7 +611,7 @@
                   "Fn::Join": [
                     "",
                     [
-                      "PIP_URL=https://bootstrap.pypa.io/get-pip.py && PYPI_URL=https://pypi.org/simple && curl \"$PIP_URL\" | python - --index-url=\"$PYPI_URL\" && pip install --index-url=\"$PYPI_URL\" --upgrade pip setuptools watchmaker",
+                      "PYPI_URL=https://pypi.org/simple && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && python3 -m ensurepip --upgrade --default-pip && pip install --index-url=\"$PYPI_URL\" --upgrade pip setuptools && pip install --index-url=\"$PYPI_URL\" --upgrade watchmaker",
                       "\n"
                     ]
                   ]
