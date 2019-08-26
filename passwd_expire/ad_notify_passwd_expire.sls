@@ -5,7 +5,6 @@ passwd_notify_install_packages:
       - git
       - php
       - php-ldap
-      - cyrus-sasl-plain
 
 gitproj:
   git.latest:
