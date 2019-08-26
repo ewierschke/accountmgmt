@@ -1,3 +1,10 @@
+ses_deps_install_packages:
+  pkg.installed:
+    - names:
+      - cyrus-sasl-plain
+      - postfix
+      - wget
+
 get_sasl_password:
   cmd.run:
     - name: aws s3 cp s3://{{ salt.pillar.get('accountmgmt:lookup:config_bucket') }}/sasl_passwd /etc/postfix/sasl_passwd
